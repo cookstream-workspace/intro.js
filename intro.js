@@ -306,6 +306,12 @@
     if (typeof (this._currentStep) === 'undefined') {
       this._currentStep = 0;
     } else {
+      // trigger onHideStep callback
+      var step = this._introItems[this._currentStep];
+      if (step.onHideStep) {
+        step.onHideStep(step.element);
+      }
+
       ++this._currentStep;
     }
 
@@ -356,6 +362,12 @@
    * @param {Object} targetElement
    */
   function _exitIntro(targetElement) {
+    // trigger onHideStep callback
+    var step = this._introItems[this._currentStep || 0];
+    if (step && step.onHideStep) {
+      step.onHideStep(step.element);
+    }
+
     //remove overlay layer from the page
     var overlayLayer = targetElement.querySelector('.introjs-overlay');
 
@@ -500,6 +512,7 @@
           tooltipLayer.style.top = "-" + (tooltipOffset.height - targetOffset.height - 20) + "px";
         } else {
           arrowLayer.className = 'introjs-arrow left';
+          tooltipLayer.style.top = (targetOffset.height / 2 - arrowLayer.offsetTop - arrowLayer.offsetHeight / 2) + "px";
         }
         break;
       case 'left':
@@ -514,6 +527,7 @@
           arrowLayer.className = 'introjs-arrow right-bottom';
         } else {
           arrowLayer.className = 'introjs-arrow right';
+          tooltipLayer.style.top = (targetOffset.height / 2 - arrowLayer.offsetTop - arrowLayer.offsetHeight / 2) + "px";
         }
         tooltipLayer.style.right = (targetOffset.width + 20) + 'px';
 
@@ -692,23 +706,26 @@
       if (!this._introItems[this._currentStep]) return;
 
       var currentElement  = this._introItems[this._currentStep],
-          elementPosition = _getOffset(currentElement.element),
-          widthHeightPadding = 10;
+          elementPosition = _getOffset(currentElement.element);
 
       // if the target element is fixed, the tooltip should be fixed as well.
-      if (_isFixed(currentElement.element)) {
-        helperLayer.className += ' introjs-fixedTooltip';
-      }
+      var parent = currentElement.element;
+      helperLayer.classList.remove('introjs-fixedTooltip');
+      while (parent != null) {
+        if (parent.tagName.toLowerCase() === 'body') break;
 
-      if (currentElement.position == 'floating') {
-        widthHeightPadding = 0;
+        if (_isFixed(parent)) {
+          helperLayer.classList.add('introjs-fixedTooltip');
+        }
+
+        parent = parent.parentNode;
       }
 
       //set new position to helper layer
-      helperLayer.setAttribute('style', 'width: ' + (elementPosition.width  + widthHeightPadding)  + 'px; ' +
-                                        'height:' + (elementPosition.height + widthHeightPadding)  + 'px; ' +
-                                        'top:'    + (elementPosition.top    - 5)   + 'px;' +
-                                        'left: '  + (elementPosition.left   - 5)   + 'px;');
+      helperLayer.setAttribute('style', 'width: ' + elementPosition.width  + 'px; ' +
+                                        'height:' + elementPosition.height + 'px; ' +
+                                        'top:'    + elementPosition.top    + 'px;'  +
+                                        'left: '  + elementPosition.left   + 'px;');
 
     }
   }
@@ -1041,6 +1058,23 @@
       } else {
         window.scrollBy(0, bottom + 100); // 70px + 30px padding from edge to look nice
       }
+    }
+
+    var previousStep = this._introItems[this._currentStep - 1];
+    var currentStep = this._introItems[this._currentStep];
+
+    // add reference layer class
+    var referenceLayer = document.querySelector('.introjs-tooltipReferenceLayer');
+    if (previousStep && previousStep.referenceLayerClass) {
+      referenceLayer.classList.remove(previousStep.referenceLayerClass);
+    }
+    if (currentStep.referenceLayerClass) {
+      referenceLayer.classList.add(currentStep.referenceLayerClass);
+    }
+
+    // trigger onShowStep callback
+    if (currentStep.onShowStep) {
+      currentStep.onShowStep(currentStep.element);
     }
 
     if (typeof (this._introAfterChangeCallback) !== 'undefined') {
