@@ -267,7 +267,7 @@
    * @method _cloneObject
   */
   function _cloneObject(object) {
-      if (object == null || typeof (object) != 'object' || typeof (object.nodeType) != 'undefined') {
+      if (object == null || typeof (object) != 'object' || typeof (object.nodeType) != 'undefined' || Array.isArray(object)) {
         return object;
       }
       var temp = {};
@@ -764,7 +764,9 @@
         oldHelperLayer = document.querySelector('.introjs-helperLayer'),
         oldReferenceLayer = document.querySelector('.introjs-tooltipReferenceLayer'),
         highlightClass = 'introjs-helperLayer',
-        elementPosition = _getOffset(targetElement.element);
+        elementPosition = _getOffset(targetElement.element),
+        previousStep = this._introItems[this._currentStep - 1],
+        currentStep = this._introItems[this._currentStep];
 
     //check for a current step highlight class
     if (typeof (targetElement.highlightClass) === 'string') {
@@ -999,13 +1001,38 @@
     prevTooltipButton.removeAttribute('tabIndex');
     nextTooltipButton.removeAttribute('tabIndex');
 
+    // add or remove custom buttons
+    var buttonsLayer = document.querySelector('.introjs-tooltipbuttons');
+    if (currentStep.buttons) {
+      currentStep.buttons.forEach(function(options) {
+        var button = document.createElement('a');
+        button.className = 'introjs-button introjs-custom-button';
+        button.href = 'javascript:void(0);';
+        button.innerHTML = options.title;
+        button.onclick = (function(element) {
+          return function() {
+            options.onClick.call(self, element);
+          };
+        })(currentStep.element);
+
+        buttonsLayer.appendChild(button);
+      });
+    } else {
+      var custom = buttonsLayer.querySelectorAll('.introjs-custom-button');
+      if (custom) {
+        for (var i = custom.length - 1; i >= 0; --i) {
+          buttonsLayer.removeChild(custom[i]);
+        }
+      }
+    }
+
     if (this._currentStep == 0 && this._introItems.length > 1) {
       prevTooltipButton.className = 'introjs-button introjs-prevbutton introjs-disabled';
       prevTooltipButton.tabIndex = '-1';
       nextTooltipButton.className = 'introjs-button introjs-nextbutton';
       skipTooltipButton.innerHTML = this._options.skipLabel;
     } else if (this._introItems.length - 1 == this._currentStep || this._introItems.length == 1) {
-      skipTooltipButton.innerHTML = this._options.doneLabel;
+      skipTooltipButton.innerHTML = (currentStep.buttons ? this._options.skipLabel : this._options.doneLabel);
       prevTooltipButton.className = 'introjs-button introjs-prevbutton';
       nextTooltipButton.className = 'introjs-button introjs-nextbutton introjs-disabled';
       nextTooltipButton.tabIndex = '-1';
@@ -1059,9 +1086,6 @@
         window.scrollBy(0, bottom + 100); // 70px + 30px padding from edge to look nice
       }
     }
-
-    var previousStep = this._introItems[this._currentStep - 1];
-    var currentStep = this._introItems[this._currentStep];
 
     // add reference layer class
     var referenceLayer = document.querySelector('.introjs-tooltipReferenceLayer');
