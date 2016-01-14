@@ -497,7 +497,7 @@
         if (hintMode) {
           var tooltipLayerStyleLeft = 0;
         } else {
-          var tooltipLayerStyleLeft = 15;
+          var tooltipLayerStyleLeft = (targetOffset.width / 2 - arrowLayer.offsetLeft - arrowLayer.offsetWidth / 2);
         }
 
         _checkRight(targetOffset, tooltipLayerStyleLeft, tooltipOffset, windowSize, tooltipLayer);
